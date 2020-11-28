@@ -59,7 +59,7 @@ read(payload, 'application/json')]]></ee:set-payload>
 		</ee:transform>
 		<logger level="INFO" doc:name="Logger" doc:id="e4019f5f-7884-4ccf-b8ae-bdd8cb7419fc" message="#[payload]"/>
 		<set-variable value="#[payload.responseUrl]" doc:name="Set Variable responseUrl" doc:id="5d076990-0bf6-49cc-b4c0-048f3f783b9a" variableName="responseUrl"/>
-		<os:retrieve doc:name="Retrieve user subs" doc:id="ead3ceec-079d-4a2e-8a7c-a0d159ff5be1" key="#[payload.user]" objectStore="Object_store_subscriptions" target="userSubs">
+		<os:retrieve doc:name="Retrieve user subs" doc:id="ead3ceec-079d-4a2e-8a7c-a0d159ff5be1" key='#[(payload.user splitBy "-")[1]]' objectStore="Object_store_subscriptions" target="userSubs">
 			<os:default-value ><![CDATA[#[{
 	subscriptions: []
 }]]]></os:default-value>
@@ -122,6 +122,7 @@ output application/java
 				</os:store>
 			</when>
 			<otherwise>
+				<logger level="INFO" doc:name="Logger" doc:id="754bd2ca-da16-4077-802e-34a1e8dbd2a8" message="#[output application/json --- vars.userSubs]"/>
 				<ee:transform doc:name="Slack Message Body" doc:id="ef383ab0-9b8e-429f-9b74-2208ac836b70" >
 					<ee:message >
 						<ee:set-payload ><![CDATA[%dw 2.0
@@ -167,6 +168,7 @@ output application/json
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="0b8ac593-24a7-4fa6-84fa-2d8a9db3d880" message="payload to Slack -&gt; #[payload]"/>
 				<http:request method="POST" doc:name="Send Reply to Slack" doc:id="c2bfa46e-d8bb-46fe-9832-0c793aae9b55" url="#[vars.responseUrl]"/>
 			</otherwise>
 		</choice>
