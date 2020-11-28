@@ -1,7 +1,3 @@
-Hi guys, Its a pleasure to show you guys this application/model, where I use MuleSoft and Kafka to develop a fairly simple subscription model. Please feel free to try the code out, I will be linking the GitHub links at the bottom of the post.
-
-> I would like to enter this project in Hackathon as **Everyday is an API day**
-
 ## Prerequisites:
 * Anypoint Platform Account (Deploy Mule Applications)
 * Apache Kafka Instance (Used Confluent Cloud for Kafka Cluster)
