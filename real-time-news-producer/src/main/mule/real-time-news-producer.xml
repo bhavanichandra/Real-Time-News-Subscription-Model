@@ -131,7 +131,7 @@ fun capitalize(val) = if ( val != null ) dw::core::Strings::capitalize(val) else
 ---
 {
 	response_type: "in_channel",
-	blocks: [{
+	(if ( !isEmpty(vars.userSubs.subscriptions) ) (blocks: [{
 		"type": "section",
 		"text": {
 			"type": "mrkdwn",
@@ -152,23 +152,10 @@ fun capitalize(val) = if ( val != null ) dw::core::Strings::capitalize(val) else
 	},
     {
 		"type": "divider"
-	}])
+	}])) else (text: "There are no subscriptions. Please subscribe using `/subscribe` command "))
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
-				<ee:transform doc:name="Transform Message" doc:id="44996d8f-0fe4-4539-b937-9b3880c378e9">
-					<ee:message>
-						<ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-	response_type: payload.response_type,
-	(if ( isEmpty(payload.blocks) ) (text: "There are no subscriptions. Please subscribe using `/subscribe` command ")
-	else (blocks: payload.blocks))
-}]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-				<logger level="INFO" doc:name="Logger" doc:id="0b8ac593-24a7-4fa6-84fa-2d8a9db3d880" message="payload to Slack -&gt; #[payload]"/>
 				<http:request method="POST" doc:name="Send Reply to Slack" doc:id="c2bfa46e-d8bb-46fe-9832-0c793aae9b55" url="#[vars.responseUrl]"/>
 			</otherwise>
 		</choice>
