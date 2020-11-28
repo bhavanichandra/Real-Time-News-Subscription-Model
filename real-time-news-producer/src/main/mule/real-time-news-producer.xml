@@ -44,7 +44,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 		<http:request-connection protocol="HTTPS" host="slack.com" />
 	</http:request-config>
 	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="eccc1be5-1d06-4a6d-844a-6bd0a6802acc" >
-		<http:listener-connection host="0.0.0.0" port="8085" />
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
 	</http:listener-config>
 	<flow name="real-time-news-producer-flow" doc:id="3dee8a9a-f568-4971-85dc-c1255e61df52" >
 		<kafka:message-listener doc:name="Message listener" doc:id="2ba9dba7-f2dd-4aa0-abd9-dbec3928cf24" config-ref="Apache_Kafka_Consumer_configuration" ackMode="MANUAL" pollTimeout="10" pollTimeoutTimeUnit="SECONDS"/>

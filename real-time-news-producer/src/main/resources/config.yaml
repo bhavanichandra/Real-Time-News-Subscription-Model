@@ -1,3 +1,6 @@
+http:
+  port: "8081"
+
 kafka:
   bootstrap:
     server: "pkc-l7pr2.ap-south-1.aws.confluent.cloud:9092"
