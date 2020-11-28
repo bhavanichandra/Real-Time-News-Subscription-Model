@@ -275,7 +275,7 @@ fun capitalize(val) = if ( val != null ) dw::core::Strings::capitalize(val) else
 					<http:headers ><![CDATA[#[output application/java
 ---
 {
-	"Authorization" : "Bearer " ++ Mule::p('secure::slack.apikey')
+	"Authorization" : "Bearer " ++ Mule::p('slack.apikey')
 }]]]></http:headers>
 				</http:request>
 				</when>
@@ -345,7 +345,7 @@ fun capitalize(val) = if ( val != null ) dw::core::Strings::capitalize(val) else
 					<http:headers ><![CDATA[#[output application/java
 ---
 {
-	"Authorization" : "Bearer " ++ Mule::p('secure::slack.apikey')
+	"Authorization" : "Bearer " ++ Mule::p('slack.apikey')
 }]]]></http:headers>
 				</http:request>
 				</otherwise>
