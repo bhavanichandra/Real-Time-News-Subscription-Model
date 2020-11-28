@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<kafka:producer-config name="Apache_Kafka_Producer_configuration" doc:name="Apache Kafka Producer configuration" doc:id="8d5c37a1-2875-4ae0-9dba-da9f390550a8" >
+		<kafka:producer-sasl-plain-connection username="${secure::kafka.cluster.key}" password="${secure::kafka.cluster.secret}" endpointIdentificationAlgorithm="https" tlsContext="TLS_Context">
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${kafka.bootstrap.server}" />
+			</kafka:bootstrap-servers>
+		</kafka:producer-sasl-plain-connection>
+	</kafka:producer-config>
+	 <kafka:consumer-config name="Apache_Kafka_Consumer_configuration" doc:name="Apache Kafka Consumer configuration" doc:id="682133d1-afb4-4edc-a113-bee391738872" pollTimeoutTimeUnit="SECONDS">
+        <kafka:consumer-sasl-plain-connection username="${secure::kafka.cluster.key}" password="${secure::kafka.cluster.secret}" endpointIdentificationAlgorithm="https" tlsContext="TLS_Context">
+            <kafka:bootstrap-servers>
+                <kafka:bootstrap-server value="${kafka.bootstrap.server}" />
+            </kafka:bootstrap-servers>
+            <kafka:topic-patterns>
+                <kafka:topic-pattern value="newstock-subscribe" />
+				<kafka:topic-pattern value="newstock-unsubscribe" />
+            
+</kafka:topic-patterns>
+        </kafka:consumer-sasl-plain-connection>
+    </kafka:consumer-config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="d9d729d4-0c88-488d-89d0-d96218836186" file="secure-config.yaml" key="${mule.key}" />
+	<configuration-properties doc:name="Configuration properties" doc:id="d4d6f563-0c2a-4296-aa52-7421ecb4785d" file="config.yaml" />
+	<tls:context name="TLS_Context" doc:name="TLS Context" doc:id="821877ff-815b-4b0c-820d-a320bc81a803" >
+		<tls:trust-store insecure="true" />
+	</tls:context>
+	<os:object-store name="Object_store_subscriptions" doc:name="Object store" doc:id="64745d2c-7558-41f9-bb94-9edcd2f8c996" />
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="7de55767-5e11-415a-94cf-330fb5ee6952" >
+		<http:request-connection protocol="HTTPS" host="content.guardianapis.com" />
+	</http:request-config>
+	<http:request-config name="HTTP_Request_configuration_Stocks" doc:name="HTTP Request configuration" doc:id="ed423719-eff1-4dc8-a808-7bcf452ddccb" >
+		<http:request-connection protocol="HTTPS" host="www.alphavantage.co" />
+	</http:request-config>
+	<http:request-config name="HTTP_Request_configuration_Slack" doc:name="HTTP Request configuration" doc:id="1ba630ae-e276-4de8-b1c4-aada001bf09a" >
+		<http:request-connection protocol="HTTPS" host="slack.com" />
+	</http:request-config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="eccc1be5-1d06-4a6d-844a-6bd0a6802acc" >
+		<http:listener-connection host="0.0.0.0" port="8085" />
+	</http:listener-config>
+	<flow name="real-time-news-producer-flow" doc:id="3dee8a9a-f568-4971-85dc-c1255e61df52" >
+		<kafka:message-listener doc:name="Message listener" doc:id="2ba9dba7-f2dd-4aa0-abd9-dbec3928cf24" config-ref="Apache_Kafka_Consumer_configuration" ackMode="MANUAL" pollTimeout="10" pollTimeoutTimeUnit="SECONDS"/>
+		<kafka:commit doc:name="Commit" doc:id="0503cbf0-df9c-415e-93ff-03dd57dec7a3" config-ref="Apache_Kafka_Consumer_configuration" commitKey="#[attributes.consumerCommitKey]"/>
+		<ee:transform doc:name="Transform Message" doc:id="910105d5-85a6-465a-a1e5-f1b2708af6b1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+read(payload, 'application/json')]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="e4019f5f-7884-4ccf-b8ae-bdd8cb7419fc" message="#[payload]"/>
+		<set-variable value="#[payload.responseUrl]" doc:name="Set Variable responseUrl" doc:id="5d076990-0bf6-49cc-b4c0-048f3f783b9a" variableName="responseUrl"/>
+		<os:retrieve doc:name="Retrieve user subs" doc:id="ead3ceec-079d-4a2e-8a7c-a0d159ff5be1" key="#[payload.user]" objectStore="Object_store_subscriptions" target="userSubs">
+			<os:default-value ><![CDATA[#[{
+	subscriptions: []
+}]]]></os:default-value>
+		</os:retrieve>
+		<choice doc:name="Choice" doc:id="ddbfadbe-104b-4aaf-8137-30bb62e88284" >
+			<when expression="#[lower(payload.operation) == 'subscribe']" >
+				<ee:transform doc:name="Payload to Store" doc:id="1c5ebef9-a00c-49c1-bc5d-672e83d9cc29" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	user: (payload.user splitBy "-")[1],
+	subscriptions: if ( !isEmpty(vars.userSubs.subscriptions) ) (vars.userSubs.subscriptions as Array ++ [{
+		stream: payload.stream,
+		query: payload.query,
+		responseUrl: payload.responseUrl
+	}]) else [{
+		stream: payload.stream,
+		query: payload.query,
+		responseUrl: payload.responseUrl
+	}]
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<os:store doc:name="Store new subscriptions" doc:id="a340e9be-20c3-432b-86f3-91801f32fa92" key="#[payload.user]" objectStore="Object_store_subscriptions">
+					<os:value ><![CDATA[#[{
+	subscriptions: payload.subscriptions
+}]]]></os:value>
+				</os:store>
+				
+			</when>
+			<when expression="#[lower(payload.operation) == 'unsubscribe']" >
+				<ee:transform doc:name="Removes Subscription" doc:id="3e628aa8-eed3-450a-a43b-211c98fffb15">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	user: (payload.user splitBy "-")[1],
+	subscriptions: vars.userSubs.subscriptions filter (lower($.stream) != lower(payload.stream))
+	
+	}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="unsubscribe" ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	stream: payload.stream,
+	topic: payload.query
+}
+]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<os:store doc:name="Remove Subscriptions" doc:id="c4e914c2-03ac-41f8-960b-3fd09190230a" key="#[payload.user]" objectStore="Object_store_subscriptions">
+					<os:value ><![CDATA[#[{
+	subscriptions: payload.subscriptions
+}]]]></os:value>
+				</os:store>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Slack Message Body" doc:id="ef383ab0-9b8e-429f-9b74-2208ac836b70" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+fun capitalize(val) = if ( val != null ) dw::core::Strings::capitalize(val) else "VALUE_NULL"
+---
+{
+	response_type: "in_channel",
+	blocks: [{
+		"type": "section",
+		"text": {
+			"type": "mrkdwn",
+			"text": "List of Current Subscriptions as follows"
+		}
+	},{
+		"type": "divider"
+	}] ++ flatten(vars.userSubs.subscriptions as Array map [{
+		"type": "section",
+		"fields": [{
+			"type": "mrkdwn",
+			"text": "*Stream*: " ++ capitalize($.stream)
+		},
+        {
+			"type": "mrkdwn",
+			"text": "*Topic*: " ++ capitalize($.query)
+		}]
+	},
+    {
+		"type": "divider"
+	}])
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<ee:transform doc:name="Transform Message" doc:id="44996d8f-0fe4-4539-b937-9b3880c378e9">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	response_type: payload.response_type,
+	(if ( isEmpty(payload.blocks) ) (text: "There are no subscriptions. Please subscribe using `/subscribe` command ")
+	else (blocks: payload.blocks))
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<http:request method="POST" doc:name="Send Reply to Slack" doc:id="c2bfa46e-d8bb-46fe-9832-0c793aae9b55" url="#[vars.responseUrl]"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="759e1681-61a4-409e-aec4-b841169f956f" message="#[payload]"/>
+	</flow>
+	<flow name="real-time-news-producer-scheduler" doc:id="a2094255-7c2a-4ec0-916a-fcfb0989e51d">
+		<scheduler doc:name="Scheduler" doc:id="26295004-cd01-4e8b-9a70-7f6e622ea235">
+			<scheduling-strategy>
+				<fixed-frequency frequency="5" timeUnit="HOURS"/>
+			</scheduling-strategy>
+		</scheduler>
+		<os:retrieve-all doc:name="Retrieve all" doc:id="73e959ae-fde6-4e51-b259-6d3a3020e0c8" objectStore="Object_store_subscriptions"/>
+		<ee:transform doc:name="Transform Message" doc:id="3d8dfd14-bad8-4b74-a5c3-97821951cab9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json  
+---
+payload pluck ((value, key, index) ->{
+    (value.subscriptions),
+    (channel: key)
+})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="6390acaa-9ae9-42be-b306-c2f0d3287aac" message="Scheduler Started #[payload]" />
+		<parallel-foreach doc:name="Parallel For Each" doc:id="7f24ac57-a3f8-4b7d-97b7-a2e1cb646028" collection="#[payload]">
+			<flow-ref doc:name="real-time-news-producer-get-news" doc:id="18719bc3-230a-4b50-8bc0-712e098800d9" name="real-time-news-producer-get-news" />
+		</parallel-foreach>
+	</flow>
+	<flow name="real-time-news-producer-get-news" doc:id="37dc798b-3d92-4084-95e0-4ab1ec668d06" >
+		<ee:transform doc:name="Transform Message" doc:id="f8eed1a3-930b-4847-b396-ab1ff7dde711">
+				<ee:message>
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="subscription"><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		<choice doc:name="Choice" doc:id="01fa11f7-6ca2-4020-8616-65bf2c3b7cd0">
+				<when expression="#[lower(vars.subscription.stream) == 'news']">
+					<logger level="INFO" doc:name="Logger" doc:id="a9d2028c-9e99-47d9-a4ab-8aac2467748a" message="The Stream is #[vars.subscription.stream]" />
+				<http:request method="GET" doc:name="Request to  Guardian" doc:id="24ed2840-6ca7-43dd-a4a9-29f9293f875a" config-ref="HTTP_Request_configuration" path="/search">
+						<http:query-params><![CDATA[#[output application/java
+---
+{
+	"q" : payload.query,
+	"fromDate" : now() as Date {format: 'yyyy-MM-dd'},
+	"api-key" : Mule::p('secure::gaurdian.apikey'),
+	"page-size" : 10
+}]]]></http:query-params>
+					</http:request>
+					<ee:transform doc:name="Response To Slack" doc:id="d7d1f262-ce40-4dc7-be56-680a9db14462">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+fun capitalize(val) = if ( val != null ) dw::core::Strings::capitalize(val) else "VALUE_NULL"
+---
+{
+	channel: vars.subscription.channel,
+	blocks: [{
+		"type": "section",
+		"text": {
+			"type": "mrkdwn",
+			"text": ":newspaper: *Subscription: *" ++ vars.subscription.stream ++ "/" ++ vars.subscription.query
+		}
+	},
+    {
+		"type": "divider"
+	}] ++ flatten(payload.response.results map [{
+		"type": "section",
+		"text": {
+			"type": "mrkdwn",
+			"text": "*" ++ $.webTitle ++ "*"
+		}
+	},
+    {
+		"type": "section",
+		"fields": [{
+			"type": "mrkdwn",
+			"text": "*Topic*: " ++ capitalize(vars.subscription.query)
+		},
+        {
+			"type": "mrkdwn",
+			"text": "*Section Name*: " ++ capitalize($.sectionName)
+		}],
+		"accessory": {
+			"type": "button",
+			"text": {
+				"type": "plain_text",
+				"text": "Read More",
+				"emoji": true
+			},
+			"value": "websiteUrl",
+			"url": $.webUrl,
+			"action_id": "website-view-action"
+		}
+	},{
+		"type": "divider"
+	}])
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="9e39bbfc-6414-4c88-813f-5ab36dfcc996" message="The Stream is #[vars.subscription.stream] and Payload -&gt; #[output application/json indent=false --- payload]"/>
+				<http:request method="POST" doc:name="Send message to slack" doc:id="d4bbfdca-0a58-48e2-876b-e10a5a650d19" config-ref="HTTP_Request_configuration_Slack" path="/api/chat.postMessage">
+					<http:headers ><![CDATA[#[output application/java
+---
+{
+	"Authorization" : "Bearer " ++ Mule::p('secure::slack.apikey')
+}]]]></http:headers>
+				</http:request>
+				</when>
+				<otherwise>
+					<logger level="INFO" doc:name="Logger" doc:id="01bd0fb9-3643-4280-bd02-6e06f5b51850" message="The Stream is #[vars.subscription.stream]" />
+				<http:request method="GET" doc:name="Request to Alpha Vantange API" doc:id="20e4e41b-8bc0-4993-bf07-3ed645e3aec7" config-ref="HTTP_Request_configuration_Stocks" path="/query">
+						<http:query-params><![CDATA[#[output application/java
+---
+{
+	"keywords" : payload.query,
+	"apikey" : Mule::p('secure::stocks.apikey'),
+	"function" : "SYMBOL_SEARCH"
+}]]]></http:query-params>
+					</http:request>
+					<ee:transform doc:name="Response To Slack" doc:id="4dfc802f-678b-401b-a02f-014d822e2998">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+fun capitalize(val) = if ( val != null ) dw::core::Strings::capitalize(val) else "VALUE_NULL"
+---
+{
+	channel: vars.subscription.channel,
+	blocks: [{
+		"type": "section",
+		"text": {
+			"type": "mrkdwn",
+			"text": "*Quotation for Stock Search Term: * " ++ capitalize(vars.subscription.query)
+		}
+	},
+		{
+		"type": "divider"
+	}] ++ flatten(payload.bestMatches distinctBy ($."2. name") map [{
+		"type": "section",
+		"fields": [{
+			"type": "mrkdwn",
+			"text": "*Symbol*:\n " ++  $['1. symbol']
+		},
+				{
+			"type": "mrkdwn",
+			"text": "*Name*: \n" ++  $['2. name']
+		},
+				{
+			"type": "mrkdwn",
+			"text": "*Type*:\n " ++ $['3. type']
+		},
+				{
+			"type": "mrkdwn",
+			"text": "*Market Open*:\n " ++ $['5. marketOpen']
+		},
+				{
+			"type": "mrkdwn",
+			"text": "*Market Close*:\n " ++ $['6. marketClose']
+		},
+				{
+			"type": "mrkdwn",
+			"text": "*Region*:\n " ++ $['4. region']
+		}]
+	},
+		{
+		"type": "divider"
+	}])
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="1420cf78-2130-49b8-9d1a-54fd52be3381" message="The Stream is #[vars.subscription.stream] and Payload -&gt; #[output application/json indent=false --- payload]"/>
+				<http:request method="POST" doc:name="Send message to slack" doc:id="9b73953e-c96c-4594-b0d6-5c9d44cd0a85" config-ref="HTTP_Request_configuration_Slack" path="/api/chat.postMessage" >
+					<http:headers ><![CDATA[#[output application/java
+---
+{
+	"Authorization" : "Bearer " ++ Mule::p('secure::slack.apikey')
+}]]]></http:headers>
+				</http:request>
+				</otherwise>
+			</choice>
+	</flow>
+	<flow name="real-time-news-producer-get-news-clear-objectstore" doc:id="47e49db3-0acf-4454-9170-e07e9de75cc1" >
+		<http:listener doc:name="Listener" doc:id="ee7fa585-5971-4eda-9392-f05c5a3e25be" config-ref="HTTP_Listener_config" path="clear"/>
+		<os:clear doc:name="Clear" doc:id="607d00ec-f065-4a3c-9970-0d7473f1bec2" objectStore="Object_store_subscriptions"/>
+	</flow>
+	<flow name="real-time-news-producer-get-news-manual-trigger" doc:id="dde626a6-5c1a-4e69-ac9f-84a41595c55b" >
+		<http:listener doc:name="Listener" doc:id="29e154e4-3de7-485e-a172-9749332260e7" config-ref="HTTP_Listener_config" path="/triggerstreams"/>
+		<flow-ref doc:name="real-time-news-producer-scheduler" doc:id="26efdb4c-10c1-49a0-a06b-016f2a03a3d8" name="real-time-news-producer-scheduler"/>
+	</flow>
+</mule>

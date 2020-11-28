@@ -1,0 +1,4 @@
+kafka:
+  cluster:
+    key: "![G/z2S+AlnuxFS36+3iGbK+1oxDWZygXvWBtGkhQXBwE=]"
+    secret: "![Lk+UoVNgvNhtGDYqFJda4DMwoAPKM7dV3fmK6QclYHNX0EH075+1cx9sx7goNzQF5gF1zFhy3NktfDLkUWvchFciXNkcDCdO/7mXs9xtFko=]"

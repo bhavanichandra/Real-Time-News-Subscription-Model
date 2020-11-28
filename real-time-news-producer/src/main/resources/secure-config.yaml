@@ -1,0 +1,13 @@
+kafka:
+  cluster:
+    key: "![G/z2S+AlnuxFS36+3iGbK+1oxDWZygXvWBtGkhQXBwE=]"
+    secret: "![Lk+UoVNgvNhtGDYqFJda4DMwoAPKM7dV3fmK6QclYHNX0EH075+1cx9sx7goNzQF5gF1zFhy3NktfDLkUWvchFciXNkcDCdO/7mXs9xtFko=]"
+    
+stocks:
+  apikey: "![AFrOu7WdMHJOBi1auH/cSeyRbKovbywmKuvsMG4iPRg=]"
+
+gaurdian:
+  apikey: "![8FDZAvLCy/MayhetvsAP/BYxQNT0V6y9iYnFuAtmXQVwmkpDUbWABMHUBxC6mm8e]"
+
+slack:
+  apikey: "![fmWkLtinopYZVgqe7a0/OnFYPhL1w0TGcJhDx6I5n+uK7Ku2tnf7i2MajeuFgPcxukkuWtHq1/43C2QE7vNXtA==]"

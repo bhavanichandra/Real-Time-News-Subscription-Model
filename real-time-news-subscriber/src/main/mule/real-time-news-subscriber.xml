@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd">
+   
+    <flow name="real-time-news-subscriber-main">
+        <http:listener config-ref="real-time-news-subscriber-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="real-time-news-subscriber-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+     <flow name="post:\subscribe:application\x-www-form-urlencoded:real-time-news-subscriber-config">
+        <ee:transform doc:name="Payload" doc:id="d27f4e04-a128-434a-9bfa-19d435fe755d">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var textArray = payload.text splitBy  " "
+---
+{
+	channelId: payload.channel_id,
+	responseUrl: payload.response_url,
+	triggerId: payload.trigger_id,
+	stream: dw::core::Arrays::slice(textArray, 0, 1)[0],
+	query: dw::core::Arrays::slice(textArray, 1, sizeOf(textArray)) joinBy  " ",
+	operation: "subscribe",
+	user: payload.user_name ++ "-" ++ payload.user_id
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <set-variable value="#[payload]" doc:name="Set Variable originalPayload" doc:id="3a06c015-5144-478e-a2dd-b030f6cbd186" variableName="originalPayload" />
+        <logger level="INFO" doc:name="Logger" doc:id="e072d67f-7758-4f8c-b7bc-19a83edc4af6" message="#[payload]" />
+		<ee:transform doc:name="Slack Message" doc:id="bbb9ea88-8a53-4cdd-a8fa-a7513b0fbdb4">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"response_type": "in_channel",
+	"blocks": [{
+		"type": "section",
+		"text": {
+			"type": "mrkdwn",
+			"text": "Susbcription request registered successfully for following"
+		},
+		"fields": [{
+			"type": "mrkdwn",
+			"text": "*Stream*: " ++ payload.stream
+		},
+				{
+			"type": "mrkdwn",
+			"text": "*Search Term*: " ++ payload.query
+		}]
+	},
+		{
+		"type": "context",
+		"elements": [{
+			"type": "mrkdwn",
+			"text": "Disclaimer: Use *unscubscribe* command to unsubscribe"
+		}]
+	}]
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <async doc:name="Async" doc:id="d4378219-f141-44c2-9b3b-c7302b2cf415">
+            <kafka:publish doc:name="Publish" doc:id="a985cca9-2428-47ca-89b2-5db76de284f0" config-ref="Apache_Kafka_Producer_configuration" topic="newstock-subscribe" key="#[vars.originalPayload.user]">
+                <kafka:message><![CDATA[#[vars.originalPayload]]]></kafka:message>
+            </kafka:publish>
+            <logger level="INFO" doc:name="Logger" doc:id="662a3ba0-4ff0-44a9-8795-c6f4477001ae" message="Published to Kafka #[output application/json --- message]" />
+        </async>
+    </flow>
+    <flow name="post:\unsubscribe:application\x-www-form-urlencoded:real-time-news-subscriber-config">
+        <ee:transform doc:name="Payload" doc:id="3d49ce8a-2cae-40fb-9ce9-8425f8c6ed4c">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var textArray = payload.text splitBy  " "
+---
+{
+	channelId: payload.channel_id,
+	responseUrl: payload.response_url,
+	triggerId: payload.trigger_id,
+	stream: textArray[0],
+	operation: "unsubscribe",
+	user: payload.user_name ++ "-" ++ payload.user_id
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <set-variable value="#[payload]" doc:name="Set Variable originalPayload" doc:id="0cff5c24-bd22-4029-892b-0a78979688e3" variableName="originalPayload" />
+        <logger level="INFO" doc:name="Logger" doc:id="18c40503-1133-42e4-bf73-863b4396c208" message="#[payload]" />
+		<ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"response_type": "in_channel",
+	"blocks": [{
+		"type": "section",
+		"text": {
+			"type": "mrkdwn",
+			"text": "You have unsubscribed to following"
+		},
+		"fields": [{
+			"type": "mrkdwn",
+			"text": "*Stream*: " ++ payload.stream
+		}]
+	},
+		{
+		"type": "context",
+		"elements": [{
+			"type": "mrkdwn",
+			"text": "Please *subscribe* again for any topics"
+		}]
+	}]
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<async doc:name="Async" doc:id="9f0c430b-3b3b-4f18-b82c-62f79ff58dd6" >
+			<kafka:publish doc:name="Publish" doc:id="8715aaca-df7c-4864-ae73-2e199bf0e5ef" config-ref="Apache_Kafka_Producer_configuration" topic="newstock-unsubscribe" key="#[vars.originalPayload.user]">
+			<kafka:message><![CDATA[#[vars.originalPayload]]]></kafka:message>
+		</kafka:publish>
+			<logger level="INFO" doc:name="Logger" doc:id="f092852e-2b1b-4dda-985d-6bef9f380e18" message="Published to Kafka #[output application/json --- message]" />
+		</async>
+    </flow>
+    <flow name="post:\subscriptions:application\x-www-form-urlencoded:real-time-news-subscriber-config">
+		<ee:transform doc:name="Transform Message" doc:id="fabcbf6b-7923-480f-bebc-a75be962e99c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	response_type: "in_channel",
+	text: "Request received. Will be sending you the subscription list soon "
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="originalRequest" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	channelId: payload.channel_id,
+	responseUrl: payload.response_url,
+	triggerId: payload.trigger_id,
+	operation: "list_subscription",
+	user: payload.user_name ++ "-" ++ payload.user_id
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<async doc:name="Async" doc:id="7be35174-6f1f-4106-b528-21350fd74884" >
+			<kafka:publish doc:name="Publish" doc:id="777e87c0-9d19-40d2-88ad-f1e83c09d9c6" config-ref="Apache_Kafka_Producer_configuration" topic="newstock-subscribe" key="#[vars.originalRequest.user]" >
+				<kafka:message ><![CDATA[#[vars.originalRequest]]]></kafka:message>
+			</kafka:publish>
+			<logger level="INFO" doc:name="Logger" doc:id="7385c861-6f4a-43e0-84b7-167946c7ac5d" message="Published to Kafka #[output application/json --- message]" />
+		</async>
+    </flow>
+</mule>
