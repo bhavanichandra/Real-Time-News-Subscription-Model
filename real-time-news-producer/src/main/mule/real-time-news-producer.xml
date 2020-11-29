@@ -167,6 +167,16 @@ fun capitalize(val) = if ( val != null ) dw::core::Strings::capitalize(val) else
 				<fixed-frequency frequency="5" timeUnit="HOURS"/>
 			</scheduling-strategy>
 		</scheduler>
+		<ee:transform doc:name="Transform Message" doc:id="6b3dc0b7-a654-44d0-b6c4-4cf2a8b4b9b6" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="slackToken" ><![CDATA[%dw 2.0
+output application/java
+---
+if(payload != null and payload.slackToken != null) (payload.slackToken) else (Mule::p('slack.apikey'))]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
 		<os:retrieve-all doc:name="Retrieve all" doc:id="73e959ae-fde6-4e51-b259-6d3a3020e0c8" objectStore="Object_store_subscriptions"/>
 		<ee:transform doc:name="Transform Message" doc:id="3d8dfd14-bad8-4b74-a5c3-97821951cab9" >
 			<ee:message >
@@ -264,7 +274,7 @@ fun capitalize(val) = if ( val != null ) dw::core::Strings::capitalize(val) else
 					<http:headers ><![CDATA[#[output application/java
 ---
 {
-	"Authorization" : "Bearer " ++ Mule::p('slack.apikey')
+	"Authorization" : "Bearer " ++ vars.slackToken
 }]]]></http:headers>
 				</http:request>
 				</when>
@@ -334,7 +344,7 @@ fun capitalize(val) = if ( val != null ) dw::core::Strings::capitalize(val) else
 					<http:headers ><![CDATA[#[output application/java
 ---
 {
-	"Authorization" : "Bearer " ++ Mule::p('slack.apikey')
+	"Authorization" : "Bearer " ++ vars.slackToken
 }]]]></http:headers>
 				</http:request>
 				</otherwise>
@@ -346,6 +356,14 @@ fun capitalize(val) = if ( val != null ) dw::core::Strings::capitalize(val) else
 	</flow>
 	<flow name="real-time-news-producer-get-news-manual-trigger" doc:id="dde626a6-5c1a-4e69-ac9f-84a41595c55b" >
 		<http:listener doc:name="Listener" doc:id="29e154e4-3de7-485e-a172-9749332260e7" config-ref="HTTP_Listener_config" path="/triggerstreams"/>
+		<ee:transform doc:name="Transform Message" doc:id="eadb701d-6c99-434e-a19e-3f948c38b855" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+slackToken: attributes.queryParams.slackToken]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 		<flow-ref doc:name="real-time-news-producer-scheduler" doc:id="26efdb4c-10c1-49a0-a06b-016f2a03a3d8" name="real-time-news-producer-scheduler"/>
 		<ee:transform doc:name="Transform Message" doc:id="dbffa91a-ab32-48dc-a727-7fd494572983" >
 			<ee:message >
